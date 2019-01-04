@@ -7,23 +7,21 @@ import Modal from '../../widgets/components/modal.js';
 import HandleError from '../../error/containers/handle-error.js';
 import VideoPlayer from '../../player/containers/video-player.js';
 import { connect } from 'react-redux';
+import { List as list } from 'immutable';
+import  * as actions from '../../actions/index';
+import { bindActionCreators } from 'redux';
 
 class Home extends Component {
 	state = {
 		modalVisible : false,
 	}
 
-	handleOpenModal = (media) => {
-		this.setState({
-			modalVisible : true,
-			media
-		})
+	handleOpenModal = (id) => {
+		this.props.actions.openModal(id)
 	}
 
 	handleCloseModal = (event) =>{
-		this.setState({
-			modalVisible : false,
-		})
+		this.props.actions.closeModal()
 	}
 
 	render() {
@@ -37,15 +35,16 @@ class Home extends Component {
 						search={this.props.search}
 					/>
 					{
-						this.state.modalVisible &&
+						this.props.modal.get('visibility') &&
 						<ModalContainer>
 							<Modal
 								handleClick={this.handleCloseModal}
 							>
 								<VideoPlayer 
 									autoplay
-									src={this.state.media.src}
-									title={this.state.media.title}
+									id={this.props.modal.get('mediaId')}
+									//src={this.state.media.src}
+									//title={this.state.media.title}
 								/>
 							</Modal>
 						</ModalContainer>
@@ -56,14 +55,30 @@ class Home extends Component {
 	}
 }
 
-function mapSateToProps(state, props) {
+function mapStateToProps(state, props) {
 	const categories = state.get('data').get('categories').map((categoryId) => {
 		return state.get('data').get('entities').get('categories').get(categoryId)
 	})
+	const search = state.get('data').get('search')
+	let searchResults = list()
+	if(search) {
+		const mediaList = state.get('data').get('entities').get('media');
+		searchResults = mediaList.filter((item)=> {
+			return item.get('author').toLowerCase().includes(search.toLowerCase())
+		}).toList();
+	}
 	return {
 		categories: categories,
-		search: state.get('data').get('search')
+		search: searchResults,
+		modal: state.get('modal'),
 	}
 }
 
-export default connect(mapSateToProps)(Home);
+function mapDispatchToProps(dispatch) {
+  return {
+    // actions: bindActionCreators(acciones, dispatch)
+    actions: bindActionCreators(actions, dispatch)
+  }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Home)
